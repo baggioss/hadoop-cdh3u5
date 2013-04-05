@@ -91,6 +91,9 @@
   <property name="librecordio.src" value="${c++.src}/librecordio"/>
   <property name="tools.src" value="${basedir}/src/tools"/>
 
+  <property name="idlerunner.src" value="${c++.src}/idlerunner"/>
+  <property name="build.idlerunner" value="${build.dir}/idlerunner"/>
+  <property name="idlerunner.name" value="idlerunner"/>
   <property name="xercescroot" value=""/> 
   <property name="build.dir" value="${basedir}/build"/>
   <property name="build.classes" value="${build.dir}/classes"/>
@@ -312,7 +315,7 @@
       <exclude name="**/excluded/" />
     </fileset>
     <pathelement location="${conf.dir}"/>
-    <path refid="ivy-common.classpath"/>
+    <!-- path refid="ivy-common.classpath"/ -->
   </path>
 
   <!-- the unit test classpath: uses test.src.dir for configuration -->
@@ -370,11 +373,23 @@
     </sequential>
   </macrodef>
 
+  <target name="compile-idlerunner" depends="init">
+    <delete dir="${build.idlerunner}"/>
+    <delete file="${basedir}/bin/${idlerunner.name}"/>
+    <delete file="${idlerunner.src}/${idlerunner.name}"/>
+    <mkdir dir="${build.idlerunner}"/>
+    <exec dir="${idlerunner.src}" executable="${make.cmd}" failonerror="true"/>
+    <copy file="${idlerunner.src}/${idlerunner.name}" todir="${basedir}/bin"/>
+    <chmod perm="ugo+x" type="file">
+        <fileset file="${basedir}/bin/${idlerunner.name}"/>
+    </chmod>
+  </target>
 
   <!-- ====================================================== -->
   <!-- Stuff needed by all targets                            -->
   <!-- ====================================================== -->
-  <target name="init" depends="ivy-retrieve-common">
+  <target name="init">
+  <!-- target name="init" depends="ivy-retrieve-common" -->
     <mkdir dir="${build.dir}"/>
     <mkdir dir="${build.classes}"/>
     <mkdir dir="${build.tools}"/>
@@ -689,7 +704,7 @@
 
   <target name="compile-core"
           depends="clover,compile-core-classes,compile-mapred-classes,
-  	compile-hdfs-classes,compile-core-native,compile-c++" 
+  	compile-hdfs-classes,compile-core-native,compile-c++,compile-idlerunner" 
   	description="Compile core only">
   </target>
 
@@ -743,14 +758,14 @@
           <attribute name="Implementation-Vendor" value="Apache"/>
         </section>
       </manifest>
-      <service type="org.apache.hadoop.security.token.TokenRenewer">
+      <!--service type="org.apache.hadoop.security.token.TokenRenewer">
         <provider classname="org.apache.hadoop.hdfs.DFSClient$Renewer"/>
         <provider classname="org.apache.hadoop.mapred.JobClient$Renewer"/>
         <provider classname="org.apache.hadoop.hdfs.security.token.block.BlockTokenIdentifier$Renewer"/>
         <provider classname="org.apache.hadoop.mapreduce.security.token.JobTokenIdentifier$Renewer"/>
         <provider classname="org.apache.hadoop.hdfs.HftpFileSystem$TokenManager"/>
         <provider classname="org.apache.hadoop.hdfs.web.WebHdfsFileSystem$DtRenewer"/>
-      </service>
+      </service -->
       <fileset dir="${conf.dir}" includes="${jar.properties.list}" />
       <fileset file="${jar.extra.properties.list}" />
       <zipfileset dir="${build.webapps}" prefix="webapps"/>

@@ -61,6 +61,8 @@ public interface FSConstants {
   // type of the datanode report
   public static enum DatanodeReportType {ALL, LIVE, DEAD }
 
+  public static final String CDATA_EXTENSION = ".cdata";
+  public static final String TMP_CDATA_EXTENSION = ".cdata.tmp";
   /**
    * Distributed upgrade actions:
    * 

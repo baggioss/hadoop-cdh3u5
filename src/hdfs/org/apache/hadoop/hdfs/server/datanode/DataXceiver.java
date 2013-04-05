@@ -301,6 +301,7 @@ class DataXceiver extends Thread implements Runnable, FSConstants {
       
       datanode.myMetrics.bytesRead.inc((int) read);
       datanode.myMetrics.blocksRead.inc();
+      datanode.updateBlockAtime(block);
     } catch ( SocketException ignored ) {
       // Its ok for remote side to close the connection anytime.
       datanode.myMetrics.blocksRead.inc();

@@ -340,4 +340,8 @@ public interface FSDatasetInterface extends FSDatasetMBean {
    * Get {@link BlockLocalPathInfo} for the given block.
    **/
   public BlockLocalPathInfo getBlockLocalPathInfo(Block b) throws IOException;
+
+  public String getBlockFilePath(Block b) throws IOException;
+  
+  public void convertToCompressBlockInfo(Block b) throws IOException;
 }

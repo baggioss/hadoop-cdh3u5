@@ -19,7 +19,9 @@
 package org.apache.hadoop.hdfs.server.datanode;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -157,22 +159,45 @@ class FSDatasetAsyncDiskService {
     execute(volume.getCurrentDir(), deletionTask);
   }
   
+  void deleteAsync(FSDataset.FSVolume volume, List<File> filelist, long dfsBytes, String blockName) {
+    StringBuffer sb = new StringBuffer();
+    for(File f : filelist){
+      sb.append(f.getAbsolutePath());
+      sb.append(",");
+    }
+    DataNode.LOG.info("Scheduling block " + blockName + " file list " + sb.toString() + " for deletion");
+    ReplicaFileDeleteTask deletionTask = 
+        new ReplicaFileDeleteTask(volume, filelist, dfsBytes,
+            blockName);
+    execute(volume.getCurrentDir(), deletionTask);
+  }
+  
   /** A task for deleting a block file and its associated meta file, as well
    *  as decrement the dfs usage of the volume. 
    */
   static class ReplicaFileDeleteTask implements Runnable {
 
     FSDataset.FSVolume volume;
-    File blockFile;
-    File metaFile;
+    List<File> filelist = null;
     long dfsBytes;
     String blockName;
     
     ReplicaFileDeleteTask(FSDataset.FSVolume volume, File blockFile,
         File metaFile, long dfsBytes, String blockName) {
       this.volume = volume;
-      this.blockFile = blockFile;
-      this.metaFile = metaFile;
+      if(filelist == null)
+        filelist = new ArrayList<File>();
+      if(blockFile != null)
+        this.filelist.add(blockFile);
+      if(metaFile != null)
+        this.filelist.add(metaFile);
+      this.dfsBytes = dfsBytes;
+      this.blockName = blockName;
+    }
+    
+    ReplicaFileDeleteTask(FSDataset.FSVolume volume, List<File> filelist, long dfsBytes, String blockName) {
+      this.volume = volume;
+      this.filelist = filelist;
       this.dfsBytes = dfsBytes;
       this.blockName = blockName;
     }
@@ -184,18 +209,30 @@ class FSDatasetAsyncDiskService {
     @Override
     public String toString() {
       // Called in AsyncDiskService.execute for displaying error messages.
-      return "deletion of block " + blockName + " with block file " + blockFile
-          + " and meta file " + metaFile + " from volume " + volume;
+      StringBuffer sb = new StringBuffer();
+      for(File f : filelist){
+        sb.append(f.getAbsolutePath());
+        sb.append(",");
+      }
+      return "deletion of block " + blockName + " with block file " + sb.toString() + " from volume " + volume;
     }
 
     @Override
     public void run() {
-      if ( !blockFile.delete() || ( !metaFile.delete() && metaFile.exists() ) ) {
-        DataNode.LOG.warn("Unexpected error trying to delete block "
-            + blockName + " at file " + blockFile + ". Ignored.");
-      } else {
+      boolean delsuccess = true;
+      for(File f : filelist){
+         if(f == null)
+           continue;
+         if(!(f.exists() && f.delete())){
+           DataNode.LOG.warn("Unexpected error trying to delete block "
+                   + blockName + " at file " + this.blockName + ". Ignored.");
+           delsuccess = false;
+           break;
+         }
+      }
+      if(delsuccess){
         volume.decDfsUsed(dfsBytes);
-        DataNode.LOG.info("Deleted block " + blockName + " at file " + blockFile);
+        DataNode.LOG.info("Deleted block " + blockName + " at file " + this.blockName);
       }
     }
   };
